@@ -1,0 +1,104 @@
+parameters:
+  workingDir: ''
+  planFile: ''
+  group: ''
+ 
+
+steps:
+- task: TerraformInstaller@1
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: 'latest'
+
+- script: |
+    ls -la
+    ls ${{ parameters.workingDir }}
+    cat ${{ parameters.workingDir }}/main.tf
+    git clone https://x-access-token:$(PAT)@dev.azure.com/doters/sharing/_git/Terraform_modules
+  displayName: 'Descargar modulos'
+  workingDirectory: $(System.DefaultWorkingDirectory)/
+
+- task: TerraformCLI@1
+  displayName: 'Terraform Init'
+  inputs:
+    command: 'init'
+
+
+- task: AWSShellScript@1
+  inputs:
+    awsCredentials: $(awsCredential)-dev
+    regionName: 'us-east-1'
+    workingDirectory: $(System.DefaultWorkingDirectory)
+    scriptType: 'inline'
+    inlineScript: |
+      terraform validate
+  displayName: 'Terraform Validate'
+
+- task: AWSShellScript@1
+  inputs:
+    awsCredentials: $(awsCredential)-dev
+    regionName: 'us-east-1'
+    workingDirectory: $(System.DefaultWorkingDirectory)
+    scriptType: 'inline'
+    inlineScript: |
+      terraform plan -out=${{ parameters.planFile }}
+      terraform show terraform.tfstate
+      echo "Terraform Plan completed and saved to ${{ parameters.planFile }}"
+  displayName: 'Terraform Plan'
+
+- task: AWSShellScript@1
+  inputs:
+    awsCredentials: $(awsCredential)-dev
+    regionName: 'us-east-1'
+    workingDirectory: ${{ parameters.workingDir }}
+    scriptType: 'inline'
+    inlineScript: |
+      cd ${{ parameters.workingDir }}
+      terraform apply -auto-approve ${{ parameters.planFile }}
+      terraform output -json > terraform_outputs.json
+  displayName: 'Terraform Apply'
+
+- task: TerraformCLI@1
+  displayName: 'Terraform outputs'
+  inputs:
+    command: 'output'
+    arguments: '-json'
+    workingDirectory: ${{ parameters.workingDir }}
+
+  
+- script: |
+    # Variables para actualizar el Grupo de Variables
+    PAT=$(access_token)
+    ORG="vsilvas"
+    PROJECT="visilva"
+    GROUP_ID=${{parameters.group}}
+
+    echo "$PAT"
+    echo "$ORG"
+    echo "$PROJECT"
+    echo "$GROUP_ID"
+    pwd
+    ls -la
+    cat terraform_outputs.json
+    cat terraform.tfstate
+    # Leer y procesar los outputs
+    outputs=$(terraform output -json)
+
+    # Crear JSON dinámico
+    update_data="{\"variables\": {"
+    for key in $(echo $outputs | jq -r 'keys[]'); do
+      value=$(echo $outputs | jq -r ".${key}.value")
+      update_data+="\"${key}\": {\"value\": \"${value}\"},"
+    done
+    update_data=$(echo $update_data | sed 's/,$//')
+    update_data+="}}"
+
+    echo "$update_data"
+
+    # Actualizar el Grupo de Variables
+    curl --http1.1 -X PATCH -H "Content-Type: application/json" \
+      -H "Authorization: Basic $(echo -n ":$PAT" | base64)" \
+      -d "$update_data" \
+      "https://dev.azure.com/$ORG/$PROJECT/_apis/distributedtask/variablegroups/$GROUP_ID?api-version=7.0-preview.2"
+  displayName: 'Actualizar Grupo de Variables'
+  workingDirectory: ${{parameters.workingDir}}
