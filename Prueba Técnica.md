@@ -9,7 +9,7 @@ Se utilizará **Terraform** como herramienta principal para la gestión de infra
 
 - Su compatibilidad con AWS y múltiples proveedores de nube, teniendo en cuenta que la nube a utilizar es AWS, considero que es la herramienta que en el momento esta mas adaptada con la declaración y uso de recursos de AWS.
 - La facilidad de modularización y reutilización del código, en este punto lo que debemos de pensar es no solo en el árbol (el problema planteado) sino en el bosque, donde podemos crear módulos que mas adelante en cualquier otro proyecto los podamos instanciar y utilizar sin ningún problema. Adicional mas adelante puede ser una base para crear devops como servicio, donde podemos aislar esta capa lógica de componentes y enfocarnos en las necesidades del negocio con un servicio que se encargue de utilizar terraform y sus módulos de manera estándar.
-- Su enfoque declarativo y control de cambios mediante estado remoto, cuando hacemos múltiples cambios en nuestras infraestructuras no hay mejor manera de manejarlos que desde los estados de terraform y si a esto le sumamos que podemos utilizar un bucket S3 como un backend propio por aplicativo, ahí tendríamos toda la historia de cada implementación.
+- Su enfoque declarativo y control de cambios mediante estado remoto, cuando hacemos múltiples cambios en nuestras infraestructuras no hay mejor manera de manejarlos que desde los estados de terraform y si a esto le sumamos que podemos utilizar un bucket s3 como un backend propio por aplicativo, ahí tendríamos toda la historia de cada implementación.
 - La capacidad de ser agnóstica a cualquier nube, en este punto podemos tener la ventaja de redesplegar la infraestructura en cualquier proveedor nube con pequeños cambios de nombres de recursos y su utilidad.
 - Una desventaja inicial puede ser la necesidad de crear los módulos particulares para los recursos que se deben de ir realizando, pero a largo plazo esto nos apalancara la reutilización de código, estructura, estados de los recursos de cada aplicación.
 ### Diseño de la Solución
@@ -72,6 +72,12 @@ Se utilizará **Azure DevOps** para la automatización del pipeline, debido a:
 1. **Estructura Multi-Ambiente y Multi-Región**
    1. Despliegue en tres ambientes: dev, stg y prod. Esto lo realizaremos teniendo 3 grupos de variables o Library y allí dejaremos las características particuales de cada uno de los ambientes con sus respectivos nombres (agregando -dev, -stg o -prod a cada recurso)
    1. Asignación de regiones: Ohio (dev), Virginia (stg) y Oregon (prod). Estas regiones van a ser una variable particular en cada grupo de variables o library por ambiente y esto también nos brindara la capacidad de no reutilizar y no tener que hacer un commit especifico para este cambio, sino de utilizar el mismo código fuente y cambiar las variables desde AzureDevops (componente de despliegue) de manera mas administrativa y estratégica.
+
+      ![](Aspose.Words.7daeed9c-25c9-456d-8919-0e7606a7ef1f.001.png)
+
+      ![](Aspose.Words.7daeed9c-25c9-456d-8919-0e7606a7ef1f.002.png)
+
+      ![](Aspose.Words.7daeed9c-25c9-456d-8919-0e7606a7ef1f.003.png)
 
 1. **Estrategias de Despliegue**
    1. **Rolling Update**: con esta estrategia pretendemos desplegar nuevas versiones sin tiempo de inactividad, es decir, poder desplegar componentes nuevos dentro del cluster ECS e ir levantando instancias nuevas progresivamente sin afectar los procesos que estén ya desplegados en las intancias mas viejas que se van a ir reemplazando progresivamente.
