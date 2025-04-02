@@ -2,9 +2,19 @@ trigger:
 - main
 
 variables:
-- group: 'IaC_JFC'
+- group: 'IaC_retoTecnico_${{ parameters.environment }}'
 - name : awsCredential
   value: ServiceConnectionJFC
+
+parameters:
+- name: environment
+  displayName: "Selecciona el Ambiente"
+  type: string
+  default: dev
+  values:
+    - dev
+    - stg
+    - prod
 
 stages:
 
@@ -16,7 +26,7 @@ stages:
       parameters:
         workingDir: 'vpc'
         planFile: 'vpc.plan'
-        group: 'IaC_JFC'
+        group: 'IaC_retoTecnico_${{ parameters.environment }}'
 
 
 - stage: Deploy_eks
@@ -28,7 +38,7 @@ stages:
       parameters:
         workingDir: 'eks'
         planFile: 'eks.plan'
-        group: 'IaC_JFC'
+        group: 'IaC_retoTecnico_${{ parameters.environment }}'
 
 - stage: Deploy_s3
   jobs:
@@ -38,24 +48,4 @@ stages:
       parameters:
         workingDir: 's3'
         planFile: 's3.plan'
-        group: 'IaC_JFC'
-
-- stage: Deploy_route53
-  jobs:
-  - job: Terraform_vpc
-    steps:
-    - template: terraform-steps.yaml
-      parameters:
-        workingDir: 'route53'
-        planFile: 'route53.plan'
-        group: 'IaC_JFC'
-
-- stage: Deploy_cloudfront
-  jobs:
-  - job: Terraform_s3
-    steps:
-    - template: terraform-steps.yaml
-      parameters:
-        workingDir: 'cloudfront'
-        planFile: 'cloudfront.plan'
-        group: 'IaC_JFC'
+        group: 'IaC_retoTecnico_${{ parameters.environment }}'
