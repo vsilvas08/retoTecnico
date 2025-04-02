@@ -4,7 +4,7 @@ trigger:
 variables:
 - group: 'IaC_retoTecnico_${{ parameters.environment }}'
 - name : awsCredential
-  value: ServiceConnectionJFC
+  value: ServiceConnection
 
 parameters:
 - name: environment
